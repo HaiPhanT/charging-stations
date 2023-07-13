@@ -1,5 +1,6 @@
 import 'package:charging_station/screens/main_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final colorScheme = ColorScheme.fromSeed(
@@ -26,7 +27,8 @@ final theme = ThemeData().copyWith(
   // ),
 );
 
-void main() {
+Future main() async {
+  await dotenv.load(fileName: '.env');
   runApp(
     const ProviderScope(child: MyApp()),
   );
@@ -40,7 +42,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Charging Stations',
       theme: theme,
-      home: MainScreen(),
+      home: const MainScreen(),
     );
   }
 }

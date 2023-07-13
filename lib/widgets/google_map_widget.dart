@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:charging_station/models/direction.dart';
 import 'package:charging_station/providers/directions_provider.dart';
+import 'package:charging_station/providers/map_provider.dart';
 import 'package:charging_station/screens/add_station_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,7 +21,9 @@ class GoogleMapWidget extends ConsumerStatefulWidget {
 }
 
 class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
-  Set<Marker>? _markers;
+  final BitmapDescriptor _defaultMarkerIcon = BitmapDescriptor.defaultMarker;
+  Set<Marker> _markers = <Marker>{};
+  MapConfiguration _mapConfiguration = defaultMapConfiguration;
   Directions? _directions;
 
   void handleAppBarPressed() async {
@@ -28,7 +33,8 @@ class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
 
   Polyline createPolyline(Directions directions) {
     return Polyline(
-        polylineId: PolylineId('overview_polyline'), // todo: create unique ID
+        polylineId:
+            const PolylineId('overview_polyline'), // todo: create unique ID
         color: Colors.red,
         width: 5,
         points: _directions!.polylinePoints
@@ -46,15 +52,15 @@ class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
       (stations) {
         setState(() {
           _markers = {
-            for (final point in stations)
+            for (final station in stations)
               Marker(
                   markerId: const MarkerId('m1'),
                   position: LatLng(
-                    point.latitude,
-                    point.longitude,
+                    station.latitude,
+                    station.longitude,
                   ),
-                  icon: BitmapDescriptor.defaultMarker,
-                  infoWindow: InfoWindow(title: point.name)),
+                  icon: _defaultMarkerIcon,
+                  infoWindow: InfoWindow(title: station.name)),
           };
         });
       },
@@ -66,6 +72,7 @@ class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
   @override
   Widget build(BuildContext context) {
     _directions = ref.watch(directionsProvider);
+    _mapConfiguration = ref.watch(mapConfigurationProvider);
 
     return Scaffold(
       body: GoogleMap(
@@ -82,8 +89,8 @@ class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
         ),
         myLocationEnabled: true,
         myLocationButtonEnabled: true,
-        markers:
-            _markers ?? {const Marker(markerId: MarkerId('default marker'))},
+        mapType: _mapConfiguration.mapType,
+        markers: _markers,
         polylines: _directions != null ? {createPolyline(_directions!)} : {},
       ),
       floatingActionButton: ElevatedButton(
