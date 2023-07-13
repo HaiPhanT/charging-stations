@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:charging_station/models/direction.dart';
 import 'package:charging_station/providers/directions_provider.dart';
 import 'package:charging_station/providers/map_provider.dart';
