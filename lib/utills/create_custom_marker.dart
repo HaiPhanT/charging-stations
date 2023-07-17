@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+// todo: test this approach
 Future<BitmapDescriptor> createCustomMarkerV2(BuildContext context) async {
   try {
     return await BitmapDescriptor.fromAssetImage(
@@ -18,7 +19,7 @@ Future<BitmapDescriptor> createCustomMarkerV2(BuildContext context) async {
 
 Future<BitmapDescriptor> createCustomMarker() async {
   try {
-    final value = await getBytesFromAsset('assets/charger.png', 32);
+    final value = await getBytesFromAsset('assets/images/charger.png', 64);
     return BitmapDescriptor.fromBytes(value);
   } catch (error) {
     print('>> error :: createCustomMarker :: $error');

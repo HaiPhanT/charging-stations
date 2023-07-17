@@ -1,11 +1,14 @@
-import 'package:charging_station/models/direction.dart';
-import 'package:charging_station/providers/directions_provider.dart';
-import 'package:charging_station/providers/map_provider.dart';
-import 'package:charging_station/screens/add_station_screen.dart';
+import 'package:charging_station/utills/create_custom_marker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'package:charging_station/models/direction.dart';
+import 'package:charging_station/models/station.dart';
+import 'package:charging_station/providers/directions_provider.dart';
+import 'package:charging_station/providers/map_provider.dart';
+import 'package:charging_station/screens/add_station_screen.dart';
 import 'package:charging_station/constants/locations.dart';
 import 'package:charging_station/providers/station_provider.dart';
 
@@ -19,10 +22,11 @@ class GoogleMapWidget extends ConsumerStatefulWidget {
 }
 
 class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
-  final BitmapDescriptor _defaultMarkerIcon = BitmapDescriptor.defaultMarker;
-  Set<Marker> _markers = <Marker>{};
+  List<Station> _stations = [];
   MapConfiguration _mapConfiguration = defaultMapConfiguration;
   Directions? _directions;
+  Uint8List? _iconByteData;
+  bool _ready = false;
 
   void handleAppBarPressed() async {
     Navigator.push(context,
@@ -49,20 +53,17 @@ class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
     ref.read(stationsProvider.notifier).loadStations().then(
       (stations) {
         setState(() {
-          _markers = {
-            for (final station in stations)
-              Marker(
-                  markerId: const MarkerId('m1'),
-                  position: LatLng(
-                    station.latitude,
-                    station.longitude,
-                  ),
-                  icon: _defaultMarkerIcon,
-                  infoWindow: InfoWindow(title: station.name)),
-          };
+          _stations = stations;
+          _ready = true;
         });
       },
     );
+
+    getBytesFromAsset('assets/images/charger.png', 96).then((value) {
+      setState(() {
+        _iconByteData = value;
+      });
+    });
 
     super.initState();
   }
@@ -73,24 +74,45 @@ class _GoogleMapState extends ConsumerState<GoogleMapWidget> {
     _mapConfiguration = ref.watch(mapConfigurationProvider);
 
     return Scaffold(
-      body: GoogleMap(
-        key: GlobalKey(),
-        onTap: (latLng) {
-          handleGoogleMapTap();
-        },
-        initialCameraPosition: CameraPosition(
-          target: LatLng(
-            defaultLocation.latitude,
-            defaultLocation.longitude,
-          ),
-          zoom: 16,
-        ),
-        myLocationEnabled: true,
-        myLocationButtonEnabled: true,
-        mapType: _mapConfiguration.mapType,
-        markers: _markers,
-        polylines: _directions != null ? {createPolyline(_directions!)} : {},
-      ),
+      body: _ready
+          ? GoogleMap(
+              key: GlobalKey(),
+              onTap: (latLng) {
+                handleGoogleMapTap();
+              },
+              initialCameraPosition: CameraPosition(
+                target: LatLng(
+                  defaultLocation.latitude,
+                  defaultLocation.longitude,
+                ),
+                zoom: 16,
+              ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              mapType: _mapConfiguration.mapType,
+              markers: _stations.isNotEmpty
+                  ? {
+                      for (final station in _stations)
+                        Marker(
+                            markerId: const MarkerId('m1'),
+                            position: LatLng(
+                              station.latitude,
+                              station.longitude,
+                            ),
+                            icon: _iconByteData != null
+                                ? BitmapDescriptor.fromBytes(_iconByteData!)
+                                : BitmapDescriptor.defaultMarker,
+                            infoWindow: InfoWindow(title: station.name)),
+                    }
+                  : {},
+              polylines:
+                  _directions != null ? {createPolyline(_directions!)} : {},
+            )
+          : const SizedBox(
+              height: double.infinity,
+              width: double.infinity,
+              child: CircularProgressIndicator(),
+            ),
       floatingActionButton: ElevatedButton(
           onPressed: handleAppBarPressed,
           style: const ButtonStyle(
